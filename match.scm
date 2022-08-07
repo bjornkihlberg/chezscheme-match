@@ -1,5 +1,5 @@
 (library (match)
-  (export if-match match)
+  (export if-match match match-lambda)
   (import (chezscheme))
   (define-syntax if-match
     (syntax-rules (unquote-splicing quasiquote unquote)
@@ -37,9 +37,11 @@
       [(_ value `x t bodys bodyf) (if (and (equal? value 'x) t) bodys bodyf)]))
   (define-syntax match
     (syntax-rules (else)
-      [(match value) (void)]
-      [(match value [else body]) body]
-      [(match value [pattern body] rest ...)
+      [(_ value) (void)]
+      [(_ value (else body)) body]
+      [(_ value (pattern body) rest ...)
        (if-match value pattern body (match value rest ...))]
-      [(match value [pattern test body] rest ...)
-       (if-match value pattern test body (match value rest ...))])))
+      [(_ value (pattern test body) rest ...)
+       (if-match value pattern test body (match value rest ...))]))
+  (define-syntax match-lambda
+    (syntax-rules () [(_ patterns ...) (lambda (x) (match x patterns ...))])))
