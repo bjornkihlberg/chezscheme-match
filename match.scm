@@ -18,18 +18,14 @@
            (if-match (car value) `x t bodys bodyf)
            bodyf)]
       [(_ value `(x xs ...) bodys bodyf)
-       (if (and (pair? value) (not (null? (cdr value))))
-           (if-match
-             (car value)
-             `x
+       (if (pair? value)
+           (if-match (car value) `x
              (if-match (cdr value) `(xs ...) bodys bodyf)
              bodyf)
            bodyf)]
       [(_ value `(x xs ...) t bodys bodyf)
-       (if (and (pair? value) (not (null? (cdr value))))
-           (if-match
-             (car value)
-             `x
+       (if (pair? value)
+           (if-match (car value) `x
              (if-match (cdr value) `(xs ...) t bodys bodyf)
              bodyf)
            bodyf)]
