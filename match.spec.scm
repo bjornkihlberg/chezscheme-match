@@ -63,6 +63,9 @@
 (assert-with eq? (void)
   (match 4 [5 'success]))
 
+(assert-with eq? 18
+  (match 6 [(@ x y z) (+ x y z)]))
+
 (define t1 (current-time))
 (display "All tests passed!\n")
 (format #t "~s\n" (time-difference t1 t0))

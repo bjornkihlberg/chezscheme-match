@@ -57,11 +57,13 @@
       (match-errorf "Missing value, expected (match value clause ...)"))
     (for-each check-clause-syntax (cdr macro-args)))
 
-  ; (define on-mismatch-lambda (gensym "on-mismatch-lambda"))
-
   (define (match-clause val pattern on-match on-mismatch)
     (define (pattern-variable? pattern) (symbol? pattern))
-    (define (pattern-literal? pattern) (not (null? pattern)))
+    (define (pattern-literal? pattern)
+      (or (and (atom? pattern) (not (null? pattern)))
+          (and (pair? pattern) (eq? (car pattern) 'quote))))
+    (define (pattern-named? pattern)
+      (and (pair? pattern) (eq? (car pattern) '@)))
 
     (cond
       [(pattern-variable? pattern)
@@ -69,6 +71,14 @@
 
       [(pattern-literal? pattern)
         `(if (equal? ,val ,pattern) ,on-match ,on-mismatch)]
+
+      [(pattern-named? pattern)
+        (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
+          `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
+            ,(fold-right (lambda (pattern on-match)
+                (match-clause val pattern on-match on-mismatch-thunk))
+              on-match
+              (cdr pattern))))]
 
       [else
         (match-errorf "Unexpected pattern ~s" pattern)]))
