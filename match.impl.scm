@@ -66,6 +66,10 @@
     (unless (= (length pattern) 3)
       (match-errorf "Unexpected view pattern ~s, expected (-> procedure pattern)" pattern)))
 
+  (define (check-predicate-pattern-syntax pattern)
+    (unless (= (length pattern) 3)
+      (match-errorf "Unexpected predicate pattern ~s, expected (? predicate pattern)" pattern)))
+
   ; Check if pattern is variable binding
   (define (pattern-variable? pattern) (symbol? pattern))
 
@@ -81,6 +85,10 @@
   ; Check if pattern follows (-> procedure pattern)
   (define (pattern-view? pattern)
     (and (pair? pattern) (eq? (car pattern) '->)))
+
+  ; Check if pattern follows (? predicate pattern)
+  (define (pattern-predicate? pattern)
+    (and (pair? pattern) (eq? (car pattern) '?)))
 
   (define (match-clause val pattern on-match on-mismatch)
     (cond
@@ -102,6 +110,14 @@
       [(pattern-view? pattern)
         (check-view-pattern-syntax pattern)
         (match-clause `(,(cadr pattern) ,val) (caddr pattern) on-match on-mismatch)]
+      
+      [(pattern-predicate? pattern)
+        (check-predicate-pattern-syntax pattern)
+        (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
+          `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
+            (if (,(cadr pattern) ,val)
+              ,(match-clause val (caddr pattern) on-match `(,on-mismatch-thunk))
+              (,on-mismatch-thunk))))]
 
       [else
         (match-errorf "Unexpected pattern ~s" pattern)]))

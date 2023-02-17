@@ -99,6 +99,30 @@
 (assert-with eq? 8
   (match 7 [(-> add1 x) x]))
 
+(expect-error e
+  (assert-with string=?
+    (condition-message e)
+    "Unexpected predicate pattern (?), expected (? predicate pattern) in")
+  (expand '(match 5 [(?) 4])))
+
+(expect-error e
+  (assert-with string=?
+    (condition-message e)
+    "Unexpected predicate pattern (? odd?), expected (? predicate pattern) in")
+  (expand '(match 5 [(? odd?) 4])))
+
+(expect-error e
+  (assert-with string=?
+    (condition-message e)
+    "Unexpected predicate pattern (? even? x y), expected (? predicate pattern) in")
+  (expand '(match 5 [(? even? x y) 4])))
+
+(assert-with eq? 9
+  (match 9 [(? odd? x) x]))
+
+(assert-with eq? (void)
+  (match 11 [(? even? x) x]))
+
 (define t1 (current-time))
 (display "All tests passed!\n")
 (format #t "~s\n" (time-difference t1 t0))
