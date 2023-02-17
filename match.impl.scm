@@ -42,5 +42,18 @@
 ;   (syntax-rules () [(_ patterns ...) (lambda (x) (match x patterns ...))]))
 
 (define-syntax (match code)
+  (define macro-name (car (syntax->datum code)))
+
+  (define-syntax (match-errorf code)
+    (syntax-case code ()
+      [(_ code args ...)
+        (let ([msg (string-append (apply format (syntax->datum #'(args ...))) " in")])
+          #`(syntax-violation macro-name #,msg code))]))
+
   (syntax-case code ()
-    [(_ x) #'x]))
+    [(_)
+      (match-errorf code "Missing value, expected (match value clause ...)")]
+
+    [(_ expression) #'(void)]
+
+    [(_ expression clause clause* ...) #'expression]))
