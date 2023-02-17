@@ -57,15 +57,18 @@
       (match-errorf "Missing value, expected (match value clause ...)"))
     (for-each check-clause-syntax (cdr macro-args)))
 
+  ; Check if pattern follows (@ pattern pattern pattern ...)
   (define (check-named-pattern-syntax pattern)
     (let ([l (length pattern)])
       (case l [1 (match-errorf "Unexpected named pattern (@), expected (@ pattern pattern pattern ...)")]
               [2 (match-errorf "Unexpected named pattern (@ ~s), expected (@ pattern pattern pattern ...)" (cadr pattern))])))
 
+  ; Check if pattern follows (-> procedure pattern)
   (define (check-view-pattern-syntax pattern)
     (unless (= (length pattern) 3)
       (match-errorf "Unexpected view pattern ~s, expected (-> procedure pattern)" pattern)))
 
+  ; Check if pattern follows (? predicate pattern)
   (define (check-predicate-pattern-syntax pattern)
     (unless (= (length pattern) 3)
       (match-errorf "Unexpected predicate pattern ~s, expected (? predicate pattern)" pattern)))
@@ -78,15 +81,15 @@
     (or (and (atom? pattern) (not (null? pattern)))
         (and (pair? pattern) (eq? (car pattern) 'quote))))
 
-  ; Check if pattern follows (@ pattern pattern pattern ...)
+  ; Check if pattern is named pattern
   (define (pattern-named? pattern)
     (and (pair? pattern) (eq? (car pattern) '@)))
 
-  ; Check if pattern follows (-> procedure pattern)
+  ; Check if pattern is view pattern
   (define (pattern-view? pattern)
     (and (pair? pattern) (eq? (car pattern) '->)))
 
-  ; Check if pattern follows (? predicate pattern)
+  ; Check if pattern is predicate pattern
   (define (pattern-predicate? pattern)
     (and (pair? pattern) (eq? (car pattern) '?)))
 
