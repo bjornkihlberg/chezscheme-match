@@ -78,6 +78,27 @@
 (assert-with eq? 18
   (match 6 [(@ x y z) (+ x y z)]))
 
+(expect-error e
+  (assert-with string=?
+    (condition-message e)
+    "Unexpected view pattern (->), expected (-> procedure pattern) in")
+  (expand '(match 5 [(->) 4])))
+
+(expect-error e
+  (assert-with string=?
+    (condition-message e)
+    "Unexpected view pattern (-> add1), expected (-> procedure pattern) in")
+  (expand '(match 5 [(-> add1) 4])))
+
+(expect-error e
+  (assert-with string=?
+    (condition-message e)
+    "Unexpected view pattern (-> add1 x y), expected (-> procedure pattern) in")
+  (expand '(match 5 [(-> add1 x y) 4])))
+
+(assert-with eq? 8
+  (match 7 [(-> add1 x) x]))
+
 (define t1 (current-time))
 (display "All tests passed!\n")
 (format #t "~s\n" (time-difference t1 t0))

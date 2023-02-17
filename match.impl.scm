@@ -62,6 +62,10 @@
       (case l [1 (match-errorf "Unexpected named pattern (@), expected (@ pattern pattern pattern ...)")]
               [2 (match-errorf "Unexpected named pattern (@ ~s), expected (@ pattern pattern pattern ...)" (cadr pattern))])))
 
+  (define (check-view-pattern-syntax pattern)
+    (unless (= (length pattern) 3)
+      (match-errorf "Unexpected view pattern ~s, expected (-> procedure pattern)" pattern)))
+
   ; Check if pattern is variable binding
   (define (pattern-variable? pattern) (symbol? pattern))
 
@@ -73,6 +77,10 @@
   ; Check if pattern follows (@ pattern pattern pattern ...)
   (define (pattern-named? pattern)
     (and (pair? pattern) (eq? (car pattern) '@)))
+
+  ; Check if pattern follows (-> procedure pattern)
+  (define (pattern-view? pattern)
+    (and (pair? pattern) (eq? (car pattern) '->)))
 
   (define (match-clause val pattern on-match on-mismatch)
     (cond
@@ -90,6 +98,10 @@
                 (match-clause val pattern on-match on-mismatch-thunk))
               on-match
               (cdr pattern))))]
+
+      [(pattern-view? pattern)
+        (check-view-pattern-syntax pattern)
+        (match-clause `(,(cadr pattern) ,val) (caddr pattern) on-match on-mismatch)]
 
       [else
         (match-errorf "Unexpected pattern ~s" pattern)]))
