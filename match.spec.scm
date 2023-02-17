@@ -39,6 +39,14 @@
     "Unexpected clause 4, expected [pattern expression ...] in")
   (expand '(match 5 4)))
 
+(expect-error e
+  (assert-with string=?
+    (condition-message e)
+    "Unexpected pattern () in")
+  (expand '(match 5 [() 4])))
+
+(assert-with eq? 5 (match 4 [x (add1 x)]))
+
 (define t1 (current-time))
 (display "All tests passed!\n")
 (format #t "~s\n" (time-difference t1 t0))

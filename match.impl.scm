@@ -48,9 +48,6 @@
   (define (match-errorf . args)
     (syntax-violation macro-name (string-append (apply format args) " in") code))
 
-  (define (check-pattern-syntax pattern)
-    '(void))
-
   (define (check-clause-syntax clause)
     (unless (pair? clause)
       (match-errorf "Unexpected clause ~s, expected [pattern expression ...]" clause)))
@@ -61,12 +58,19 @@
     (for-each check-clause-syntax (cdr macro-args)))
 
   (define (match-clause val pattern on-match on-mismatch)
-    '(void))
+    (define (pattern-variable? pattern) (symbol? pattern))
+
+    (cond
+      [(pattern-variable? pattern)
+        `(let ([,pattern ,val]) ,on-match)]
+
+      [else
+        (match-errorf "Unexpected pattern ~s" pattern)]))
 
   (define (match-clauses val . clause*)
     (fold-right
       (lambda (clause on-mismatch)
-        (match-clause val (car clause) (cdr clause) on-mismatch))
+        (match-clause val (car clause) (cadr clause) on-mismatch))
       '(void)
       clause*))
 
