@@ -43,33 +43,33 @@
 
 (define-syntax (match code)
   (define macro-name (car (syntax->datum code)))
-  (define macro-args (cdr (syntax->list code)))
-
-  (define (syntax-list? x) (syntax-case x () [(x ...) #t] [_ #f]))
+  (define macro-args (cdr (syntax->datum code)))
 
   (define (match-errorf . args)
     (syntax-violation macro-name (string-append (apply format args) " in") code))
 
-  (define (ensure-correct-clause-syntax clause)
-    (unless (syntax-list? clause)
-            (match-errorf "Unexpected clause ~s, expected [pattern expression ...]"
-                          (syntax->datum clause))))
+  (define (check-pattern-syntax pattern)
+    '(void))
 
-  (define (ensure-correct-match-syntax macro-args)
+  (define (check-clause-syntax clause)
+    (unless (pair? clause)
+      (match-errorf "Unexpected clause ~s, expected [pattern expression ...]" clause)))
+
+  (define (check-match-syntax macro-args)
     (when (null? macro-args)
-          (match-errorf "Missing value, expected (match value clause ...)"))
-    (for-each ensure-correct-clause-syntax (cdr macro-args)))
+      (match-errorf "Missing value, expected (match value clause ...)"))
+    (for-each check-clause-syntax (cdr macro-args)))
 
   (define (match-clause val pattern on-match on-mismatch)
-    #'(void))
+    '(void))
 
   (define (match-clauses val . clause*)
     (fold-right
       (lambda (clause on-mismatch)
         (match-clause val (car clause) (cdr clause) on-mismatch))
-      #'(void)
+      '(void)
       clause*))
 
-  (ensure-correct-match-syntax macro-args)
+  (check-match-syntax macro-args)
 
-  (apply match-clauses macro-args))
+  (datum->syntax #'code (apply match-clauses macro-args)))
