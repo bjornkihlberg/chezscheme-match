@@ -45,7 +45,17 @@
     "Unexpected pattern () in")
   (expand '(match 5 [() 4])))
 
-(assert-with eq? 5 (match 4 [x (add1 x)]))
+(assert-with eq? 5
+  (match 4 [x (add1 x)]))
+
+(assert-with eq? 'success
+  (match 4 [4 'success]))
+
+(assert-with eq? 'success
+  (match "huey" ["huey" 'success]))
+
+(assert-with eq? (void)
+  (match 4 [5 'success]))
 
 (define t1 (current-time))
 (display "All tests passed!\n")

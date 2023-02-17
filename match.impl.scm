@@ -57,12 +57,18 @@
       (match-errorf "Missing value, expected (match value clause ...)"))
     (for-each check-clause-syntax (cdr macro-args)))
 
+  ; (define on-mismatch-lambda (gensym "on-mismatch-lambda"))
+
   (define (match-clause val pattern on-match on-mismatch)
     (define (pattern-variable? pattern) (symbol? pattern))
+    (define (pattern-literal? pattern) (and (atom? pattern) (not (null? pattern))))
 
     (cond
       [(pattern-variable? pattern)
         `(let ([,pattern ,val]) ,on-match)]
+
+      [(pattern-literal? pattern)
+        `(if (equal? ,val ,pattern) ,on-match ,on-mismatch)]
 
       [else
         (match-errorf "Unexpected pattern ~s" pattern)]))
