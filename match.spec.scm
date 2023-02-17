@@ -12,8 +12,8 @@
 (define-syntax expect-error
   (syntax-rules ()
     [(_ e expectation expression)
-      (let ([error (gensym "error")])
-        (assert-with symbol=? error (guard (e [else expectation error]) expression)))]))
+      (let ([error (gensym "error")] [success (gensym "success")])
+        (assert-with symbol=? error (guard (e [else expectation error]) expression success)))]))
 
 (display "Running tests...\n")
 (define t0 (current-time))
@@ -62,6 +62,18 @@
 
 (assert-with eq? (void)
   (match 4 [5 'success]))
+
+(expect-error e
+  (assert-with string=?
+    (condition-message e)
+    "Unexpected named pattern (@), expected (@ pattern pattern pattern ...) in")
+  (expand '(match 5 [(@) 4])))
+
+(expect-error e
+  (assert-with string=?
+    (condition-message e)
+    "Unexpected named pattern (@ x), expected (@ pattern pattern pattern ...) in")
+  (expand '(match 5 [(@ x) 4])))
 
 (assert-with eq? 18
   (match 6 [(@ x y z) (+ x y z)]))

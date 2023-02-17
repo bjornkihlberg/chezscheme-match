@@ -57,14 +57,24 @@
       (match-errorf "Missing value, expected (match value clause ...)"))
     (for-each check-clause-syntax (cdr macro-args)))
 
-  (define (match-clause val pattern on-match on-mismatch)
-    (define (pattern-variable? pattern) (symbol? pattern))
-    (define (pattern-literal? pattern)
-      (or (and (atom? pattern) (not (null? pattern)))
-          (and (pair? pattern) (eq? (car pattern) 'quote))))
-    (define (pattern-named? pattern)
-      (and (pair? pattern) (eq? (car pattern) '@)))
+  (define (check-named-pattern-syntax pattern)
+    (let ([l (length pattern)])
+      (case l [1 (match-errorf "Unexpected named pattern (@), expected (@ pattern pattern pattern ...)")]
+              [2 (match-errorf "Unexpected named pattern (@ ~s), expected (@ pattern pattern pattern ...)" (cadr pattern))])))
 
+  ; Check if pattern is variable binding
+  (define (pattern-variable? pattern) (symbol? pattern))
+
+  ; Check if pattern is literal comparison
+  (define (pattern-literal? pattern)
+    (or (and (atom? pattern) (not (null? pattern)))
+        (and (pair? pattern) (eq? (car pattern) 'quote))))
+
+  ; Check if pattern follows (@ pattern pattern pattern ...)
+  (define (pattern-named? pattern)
+    (and (pair? pattern) (eq? (car pattern) '@)))
+
+  (define (match-clause val pattern on-match on-mismatch)
     (cond
       [(pattern-variable? pattern)
         `(let ([,pattern ,val]) ,on-match)]
@@ -73,6 +83,7 @@
         `(if (equal? ,val ,pattern) ,on-match ,on-mismatch)]
 
       [(pattern-named? pattern)
+        (check-named-pattern-syntax pattern)
         (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
           `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
             ,(fold-right (lambda (pattern on-match)
