@@ -61,7 +61,7 @@
 
   (define (match-clause val pattern on-match on-mismatch)
     (define (pattern-variable? pattern) (symbol? pattern))
-    (define (pattern-literal? pattern) (and (atom? pattern) (not (null? pattern))))
+    (define (pattern-literal? pattern) (not (null? pattern)))
 
     (cond
       [(pattern-variable? pattern)

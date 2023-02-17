@@ -54,6 +54,12 @@
 (assert-with eq? 'success
   (match "huey" ["huey" 'success]))
 
+(assert-with eq? 'success
+  (match '(1 2 3) ['(1 2 3) 'success]))
+
+(assert-with eq? 'success
+  (match '() ['() 'success]))
+
 (assert-with eq? (void)
   (match 4 [5 'success]))
 
