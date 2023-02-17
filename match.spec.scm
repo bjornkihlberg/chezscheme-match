@@ -1,3 +1,5 @@
+(print-gensym 'pretty)
+
 (define-syntax assert-with
   (syntax-rules ()
     [(_ comparison a b)
@@ -30,6 +32,12 @@
   (expand '(match)))
 
 (assert-with eq? (void) (match 5))
+
+(expect-error e
+  (assert-with string=?
+    (condition-message e)
+    "Unexpected clause 4, expected [pattern expression ...] in")
+  (expand '(match 5 4)))
 
 (define t1 (current-time))
 (display "All tests passed!\n")
