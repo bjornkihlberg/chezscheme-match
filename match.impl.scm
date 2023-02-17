@@ -68,11 +68,12 @@
         (match-errorf "Unexpected pattern ~s" pattern)]))
 
   (define (match-clauses val . clause*)
-    (fold-right
-      (lambda (clause on-mismatch)
-        (match-clause val (car clause) (cadr clause) on-mismatch))
-      '(void)
-      clause*))
+    (let ([match-value (gensym "match-value")])
+      `(let ([,match-value ,val])
+        ,(fold-right (lambda (clause on-mismatch)
+          (match-clause match-value (car clause) (cadr clause) on-mismatch))
+          '(void)
+          clause*))))
 
   (check-match-syntax macro-args)
 
