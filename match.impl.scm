@@ -60,7 +60,19 @@
         (match-clause match-value #'x on-match on-mismatch)]
 
       [(,@x)
-        (match-clause match-value #'x on-match on-mismatch)]))
+        (match-clause match-value #'x on-match on-mismatch)]
+
+      [(x . xs)
+        ; TODO;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
+        (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")]
+              [new-match-value (gensym "match-value")])
+          `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)]) 
+              (if (pair? ,match-value)
+                ,(match-quasiquotation `(car ,match-value) #'x
+                  `(let ([,new-match-value (cdr ,match-value)])
+                    ,(match-quasiquotation new-match-value #'xs on-match `(,on-mismatch-thunk)))
+                  `(,on-mismatch-thunk))
+                (,on-mismatch-thunk))))]))
 
   (define (match-clause match-value pattern on-match on-mismatch)
     (syntax-case pattern (& ? -> quasiquote)

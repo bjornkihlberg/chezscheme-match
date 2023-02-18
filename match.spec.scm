@@ -171,6 +171,26 @@
 (assert-with eq? '()
   (match '() [`(,@x) x]))
 
+(assert-with eq? 'success
+  (match '(huey dewey louie) [`(huey dewey louie) 'success]))
+
+(assert-with eq? 'correct
+  (match '(huey dewey)
+    [`(huey dewey louie) 'wrong]
+    [`(huey dewey) 'correct]))
+
+(assert-with eq? 'dewey
+  (match '(huey dewey louie) [`(huey ,x louie) x]))
+
+(assert-with equal? '(louie)
+  (match '(huey dewey louie) [`(huey ,_ ,@xs) xs]))
+
+(assert-with equal? (void)
+  (match '(1 2 3 4 5) [`(huey ,@(-> length xs)) xs]))
+
+(assert-with equal? 4
+  (match '(1 2 3 4 5) [`(1 ,@(-> length xs)) xs]))
+
 (define t1 (current-time))
 (display "All tests passed!\n")
 (format #t "~s\n" (time-difference t1 t0))
