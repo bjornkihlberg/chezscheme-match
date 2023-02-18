@@ -147,6 +147,12 @@
 (assert-with equal? 3
   (match '(huey dewey louie) [`,(-> length n) n]))
 
+(assert-with equal? '(knatte fnatte . tjatte)
+  (match '(knatte fnatte . tjatte) [`(,@x) x]))
+
+(assert-with equal? 'hey
+  (match 'hey [`(,@x) x]))
+
 (define t1 (current-time))
 (display "All tests passed!\n")
 (format #t "~s\n" (time-difference t1 t0))

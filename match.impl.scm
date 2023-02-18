@@ -61,7 +61,11 @@
 
   (define (match-quasiquotation match-value pattern on-match on-mismatch)
     (syntax-case pattern (unquote unquote-splicing)
-      [,x (match-clause match-value #'x on-match on-mismatch)]))
+      [,x
+        (match-clause match-value #'x on-match on-mismatch)]
+
+      [(,@x)
+        (match-clause match-value #'x on-match on-mismatch)]))
 
   (define (match-clause match-value pattern on-match on-mismatch)
     (syntax-case pattern (& ? -> quasiquote)
