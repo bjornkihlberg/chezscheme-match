@@ -48,15 +48,6 @@
   (define (match-errorf . args)
     (syntax-violation macro-name (string-append (apply format args) " in") code))
 
-  (define (check-clause-syntax clause)
-    (unless (pair? clause)
-      (match-errorf "Unexpected clause ~s, expected [pattern expression ...]" clause)))
-
-  (define (check-match-syntax macro-args)
-    (when (null? macro-args)
-      (match-errorf "Missing value, expected (match value clause ...)"))
-    (for-each check-clause-syntax (cdr macro-args)))
-
   ; Check if pattern is variable binding
   (define (pattern-variable? pattern) (symbol? pattern))
 
@@ -66,7 +57,7 @@
         (and (pair? pattern) (eq? (car pattern) 'quote))))
 
   (define (match-clause val pattern on-match on-mismatch)
-    (syntax-case pattern (& ? -> quote)
+    (syntax-case pattern (& ? ->)
       [(& . named-pattern-args*)
         (syntax-case #'named-pattern-args* ()
           [(pattern0 pattern1 pattern* ...)
@@ -111,14 +102,21 @@
       [unknown-pattern
         (match-errorf "Unexpected pattern ~s" #'unknown-pattern)]))
 
-  (define (match-clauses val . clause*)
-    (let ([match-value (gensym "match-value")])
-      `(let ([,match-value ,val])
-        ,(fold-right (lambda (clause on-mismatch)
-          (match-clause match-value (car clause) (cadr clause) on-mismatch))
-          '(void)
-          clause*))))
+  (define (match-clauses macro-args)
+    (syntax-case macro-args ()
+      [()
+        (match-errorf "Missing value, expected (match value clause ...)")]
 
-  (check-match-syntax macro-args)
+      [(_)
+        '(void)]
 
-  (datum->syntax #'code (apply match-clauses macro-args)))
+      [(match-value clause . clause*)
+        (syntax-case #'clause ()
+          [(pattern on-match)
+            (match-clause #'match-value #'pattern #'on-match
+              (match-clauses (cons #'match-value #'clause*)))]
+
+          [unknown-clause
+            (match-errorf "Unexpected clause ~s, expected [pattern expression ...]" #'unknown-clause)])]))
+
+  (datum->syntax #'code (match-clauses macro-args)))
