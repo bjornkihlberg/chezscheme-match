@@ -57,22 +57,6 @@
       (match-errorf "Missing value, expected (match value clause ...)"))
     (for-each check-clause-syntax (cdr macro-args)))
 
-  ; Check if pattern follows (@ pattern pattern pattern ...)
-  (define (check-named-pattern-syntax pattern)
-    (let ([l (length pattern)])
-      (case l [1 (match-errorf "Unexpected named pattern (@), expected (@ pattern pattern pattern ...)")]
-              [2 (match-errorf "Unexpected named pattern (@ ~s), expected (@ pattern pattern pattern ...)" (cadr pattern))])))
-
-  ; Check if pattern follows (-> procedure pattern)
-  (define (check-view-pattern-syntax pattern)
-    (unless (= (length pattern) 3)
-      (match-errorf "Unexpected view pattern ~s, expected (-> procedure pattern)" pattern)))
-
-  ; Check if pattern follows (? predicate pattern)
-  (define (check-predicate-pattern-syntax pattern)
-    (unless (= (length pattern) 3)
-      (match-errorf "Unexpected predicate pattern ~s, expected (? predicate pattern)" pattern)))
-
   ; Check if pattern is variable binding
   (define (pattern-variable? pattern) (symbol? pattern))
 
@@ -81,49 +65,51 @@
     (or (and (atom? pattern) (not (null? pattern)))
         (and (pair? pattern) (eq? (car pattern) 'quote))))
 
-  ; Check if pattern is named pattern
-  (define (pattern-named? pattern)
-    (and (pair? pattern) (eq? (car pattern) '@)))
-
-  ; Check if pattern is view pattern
-  (define (pattern-view? pattern)
-    (and (pair? pattern) (eq? (car pattern) '->)))
-
-  ; Check if pattern is predicate pattern
-  (define (pattern-predicate? pattern)
-    (and (pair? pattern) (eq? (car pattern) '?)))
-
   (define (match-clause val pattern on-match on-mismatch)
-    (cond
-      [(pattern-variable? pattern)
-        `(let ([,pattern ,val]) ,on-match)]
+    (syntax-case pattern (& ? -> quote)
+      [(& . named-pattern-args*)
+        (syntax-case #'named-pattern-args* ()
+          [(pattern0 pattern1 pattern* ...)
+            (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
+              `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
+                ,(fold-right (lambda (pattern on-match)
+                      (match-clause val pattern on-match on-mismatch-thunk))
+                    on-match #'(pattern0 pattern1 pattern* ...))))]
 
-      [(pattern-literal? pattern)
-        `(if (equal? ,val ,pattern) ,on-match ,on-mismatch)]
+          [unknown-pattern-args
+            (match-errorf "Unexpected named pattern ~s, expected (& pattern pattern pattern ...)"
+                          (cons '& #'unknown-pattern-args))])]
 
-      [(pattern-named? pattern)
-        (check-named-pattern-syntax pattern)
-        (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
-          `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
-            ,(fold-right (lambda (pattern on-match)
-                (match-clause val pattern on-match on-mismatch-thunk))
-              on-match
-              (cdr pattern))))]
+      [(? . predicate-pattern-args*)
+        (syntax-case #'predicate-pattern-args* ()
+          [(predicate pattern)
+            (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
+              `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
+                (if (,#'predicate ,val)
+                  ,(match-clause val #'pattern on-match `(,on-mismatch-thunk))
+                  (,on-mismatch-thunk))))]
 
-      [(pattern-view? pattern)
-        (check-view-pattern-syntax pattern)
-        (match-clause `(,(cadr pattern) ,val) (caddr pattern) on-match on-mismatch)]
-      
-      [(pattern-predicate? pattern)
-        (check-predicate-pattern-syntax pattern)
-        (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
-          `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
-            (if (,(cadr pattern) ,val)
-              ,(match-clause val (caddr pattern) on-match `(,on-mismatch-thunk))
-              (,on-mismatch-thunk))))]
+          [unknown-pattern-args
+            (match-errorf "Unexpected predicate pattern ~s, expected (? predicate pattern)"
+                          (cons '? #'unknown-pattern-args))])]
 
-      [else
-        (match-errorf "Unexpected pattern ~s" pattern)]))
+      [(-> . view-pattern-args*)
+        (syntax-case #'view-pattern-args* ()
+          [(procedure pattern)
+            (match-clause `(,#'procedure ,val) #'pattern on-match on-mismatch)]
+
+          [unknown-pattern-args
+            (match-errorf "Unexpected view pattern ~s, expected (-> procedure pattern)"
+                          (cons '-> #'unknown-pattern-args))])]
+
+      [variable (pattern-variable? #'variable)
+        `(let ([,#'variable ,val]) ,on-match)]
+
+      [literal (pattern-literal? #'literal)
+        `(if (equal? ,val ,#'literal) ,on-match ,on-mismatch)]
+
+      [unknown-pattern
+        (match-errorf "Unexpected pattern ~s" #'unknown-pattern)]))
 
   (define (match-clauses val . clause*)
     (let ([match-value (gensym "match-value")])

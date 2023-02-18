@@ -66,17 +66,17 @@
 (expect-error e
   (assert-with string=?
     (condition-message e)
-    "Unexpected named pattern (@), expected (@ pattern pattern pattern ...) in")
-  (expand '(match 5 [(@) 4])))
+    "Unexpected named pattern (&), expected (& pattern pattern pattern ...) in")
+  (expand '(match 5 [(&) 4])))
 
 (expect-error e
   (assert-with string=?
     (condition-message e)
-    "Unexpected named pattern (@ x), expected (@ pattern pattern pattern ...) in")
-  (expand '(match 5 [(@ x) 4])))
+    "Unexpected named pattern (& x), expected (& pattern pattern pattern ...) in")
+  (expand '(match 5 [(& x) 4])))
 
 (assert-with eq? 18
-  (match 6 [(@ x y z) (+ x y z)]))
+  (match 6 [(& x y z) (+ x y z)]))
 
 (expect-error e
   (assert-with string=?
