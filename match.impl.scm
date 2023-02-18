@@ -1,33 +1,23 @@
 ; (define-syntax if-match
 ;   (syntax-rules (unquote-splicing quasiquote unquote)
 ;     [(_ value `,x bodys bodyf) ((lambda (x) bodys) value)]
-;     [(_ value `,x t bodys bodyf) ((lambda (x) (if t bodys bodyf)) value)]
+
 ;     [(_ value `(,@x) bodys bodyf)
 ;       (if (list? value) ((lambda (x) bodys) value) bodyf)]
-;     [(_ value `(,@x) t bodys bodyf)
-;       (if (list? value) ((lambda (x) (if t bodys bodyf)) value) bodyf)]
+
 ;     [(_ value `(x) bodys bodyf)
 ;       (if (and (pair? value) (null? (cdr value)))
 ;           (if-match (car value) `x bodys bodyf)
 ;           bodyf)]
-;     [(_ value `(x) t bodys bodyf)
-;       (if (and (pair? value) (null? (cdr value)))
-;           (if-match (car value) `x t bodys bodyf)
-;           bodyf)]
+
 ;     [(_ value `(x xs ...) bodys bodyf)
 ;       (if (pair? value)
 ;           (if-match (car value) `x
 ;             (if-match (cdr value) `(xs ...) bodys bodyf)
 ;             bodyf)
 ;           bodyf)]
-;     [(_ value `(x xs ...) t bodys bodyf)
-;       (if (pair? value)
-;           (if-match (car value) `x
-;             (if-match (cdr value) `(xs ...) t bodys bodyf)
-;             bodyf)
-;           bodyf)]
-;     [(_ value `x bodys bodyf) (if (equal? value 'x) bodys bodyf)]
-;     [(_ value `x t bodys bodyf) (if (and (equal? value 'x) t) bodys bodyf)]))
+
+;     [(_ value `x bodys bodyf) (if (equal? value 'x) bodys bodyf)]))
 
 ; (define-syntax match
 ;   (syntax-rules (else)
@@ -61,6 +51,11 @@
 
   (define (match-quasiquotation match-value pattern on-match on-mismatch)
     (syntax-case pattern (unquote unquote-splicing)
+      [() `(if (null? ,match-value) ,on-match ,on-mismatch)]
+
+      [literal (atom? #'literal)
+        `(if (equal? ',#'literal ,match-value) ,on-match ,on-mismatch)]
+
       [,x
         (match-clause match-value #'x on-match on-mismatch)]
 

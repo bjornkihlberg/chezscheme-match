@@ -150,8 +150,26 @@
 (assert-with equal? '(knatte fnatte . tjatte)
   (match '(knatte fnatte . tjatte) [`(,@x) x]))
 
-(assert-with equal? 'hey
+(assert-with eq? 'hey
   (match 'hey [`(,@x) x]))
+
+(assert-with eq? 'success
+  (match '() [`() 'success]))
+
+(assert-with eq? (void)
+  (match '() [`x 'success]))
+
+(assert-with eq? 'success
+  (match 'x [`x 'success]))
+
+(assert-with eq? 'success
+  (match '42 [`42 'success]))
+
+(assert-with eq? (void)
+  (match '42 [`43 'success]))
+
+(assert-with eq? '()
+  (match '() [`(,@x) x]))
 
 (define t1 (current-time))
 (display "All tests passed!\n")
