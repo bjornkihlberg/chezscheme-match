@@ -138,6 +138,9 @@
   (match 16 [x (? #f) x]
             [_ 'success]))
 
+(assert-with eq? (void)
+  (match 6 [(& x (? odd? y) z) (+ x y z)]))
+
 (define t1 (current-time))
 (display "All tests passed!\n")
 (format #t "~s\n" (time-difference t1 t0))

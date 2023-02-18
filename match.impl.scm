@@ -66,7 +66,7 @@
             (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
               `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
                 ,(fold-right (lambda (pattern on-match)
-                      (match-clause val pattern on-match on-mismatch-thunk))
+                      (match-clause val pattern on-match `(,on-mismatch-thunk)))
                     on-match #'(pattern0 pattern1 pattern* ...))))]
 
           [unknown-pattern-args
