@@ -56,6 +56,8 @@
     (or (and (atom? pattern) (not (null? pattern)))
         (and (pair? pattern) (eq? (car pattern) 'quote))))
 
+  (define (pattern-wildcard? pattern) (eq? pattern '_))
+
   (define (match-clause val pattern on-match on-mismatch)
     (syntax-case pattern (& ? ->)
       [(& . named-pattern-args*)
@@ -93,6 +95,9 @@
             (match-errorf "Unexpected view pattern ~s, expected (-> procedure pattern)"
                           (cons '-> #'unknown-pattern-args))])]
 
+      [wildcard (pattern-wildcard? #'wildcard)
+        on-match]
+
       [variable (pattern-variable? #'variable)
         `(let ([,#'variable ,val]) ,on-match)]
 
@@ -108,14 +113,16 @@
         '(void)]
 
       [(match-value clause . clause*)
-        (syntax-case #'clause ()
-          [(pattern on-match)
-            (match-clause #'match-value #'pattern #'on-match
-              (match-clauses (cons #'match-value #'clause*)))]
+        (syntax-case #'clause (?)
+          [(pattern (? predicate) on-match . on-match*)
+            (let ([k (if (null? #'on-match*) #'on-match `(begin ,#'on-match ,@#'on-match*))]
+                  [on-mismatch-thunk (gensym "on-mismatch-thunk")])
+              `(let ([,on-mismatch-thunk (lambda () ,(match-clauses (cons #'match-value #'clause*)))])
+                ,(match-clause #'match-value #'pattern `(if ,#'predicate ,k (,on-mismatch-thunk)) `(,on-mismatch-thunk))))]
 
-          [(pattern on-match ...)
-            (match-clause #'match-value #'pattern `(begin ,@#'(on-match ...))
-              (match-clauses (cons #'match-value #'clause*)))]
+          [(pattern on-match . on-match*)
+            (let ([k (if (null? #'on-match*) #'on-match `(begin ,#'on-match ,@#'on-match*))])
+              (match-clause #'match-value #'pattern k (match-clauses (cons #'match-value #'clause*))))]
 
           [unknown-clause
             (match-errorf "Unexpected clause ~s, expected [pattern expression ...]" #'unknown-clause)])]))
@@ -124,10 +131,10 @@
     (syntax-case macro-args ()
       [()
         (match-errorf "Missing value, expected (match value clause ...)")]
-      
+
       [(_)
         '(void)]
-      
+
       [(macro-arg . macro-args)
         (let ([match-value (gensym "match-value")])
           `(let ([,match-value ,#'macro-arg]) ,(match-clauses (cons match-value #'macro-args))))]))

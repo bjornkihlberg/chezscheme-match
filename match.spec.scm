@@ -126,6 +126,18 @@
 (assert-with eq? 13
   (match 12 [x (void) (add1 x)]))
 
+(assert-with eq? (void)
+  (match 3 [x (? #f) x]))
+
+(assert-with eq? 15
+  (match 15 [x (? #t) x]))
+
+(expect-error e (void) (expand '(match 17 [_ _])))
+
+(assert-with eq? 'success
+  (match 16 [x (? #f) x]
+            [_ 'success]))
+
 (define t1 (current-time))
 (display "All tests passed!\n")
 (format #t "~s\n" (time-difference t1 t0))
