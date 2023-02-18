@@ -104,9 +104,6 @@
 
   (define (match-clauses macro-args)
     (syntax-case macro-args ()
-      [()
-        (match-errorf "Missing value, expected (match value clause ...)")]
-
       [(_)
         '(void)]
 
@@ -116,7 +113,23 @@
             (match-clause #'match-value #'pattern #'on-match
               (match-clauses (cons #'match-value #'clause*)))]
 
+          [(pattern on-match ...)
+            (match-clause #'match-value #'pattern `(begin ,@#'(on-match ...))
+              (match-clauses (cons #'match-value #'clause*)))]
+
           [unknown-clause
             (match-errorf "Unexpected clause ~s, expected [pattern expression ...]" #'unknown-clause)])]))
 
-  (datum->syntax #'code (match-clauses macro-args)))
+  (define (match-wrap-value macro-args)
+    (syntax-case macro-args ()
+      [()
+        (match-errorf "Missing value, expected (match value clause ...)")]
+      
+      [(_)
+        '(void)]
+      
+      [(macro-arg . macro-args)
+        (let ([match-value (gensym "match-value")])
+          `(let ([,match-value ,#'macro-arg]) ,(match-clauses (cons match-value #'macro-args))))]))
+
+  (datum->syntax #'code (match-wrap-value macro-args)))

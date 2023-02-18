@@ -123,6 +123,9 @@
 (assert-with eq? (void)
   (match 11 [(? even? x) x]))
 
+(assert-with eq? 13
+  (match 12 [x (void) (add1 x)]))
+
 (define t1 (current-time))
 (display "All tests passed!\n")
 (format #t "~s\n" (time-difference t1 t0))
