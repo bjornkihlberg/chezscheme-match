@@ -141,6 +141,12 @@
 (assert-with eq? (void)
   (match 6 [(& x (? odd? y) z) (+ x y z)]))
 
+(assert-with equal? '(3)
+  (match '(3) [`,x x]))
+
+(assert-with equal? 3
+  (match '(huey dewey louie) [`,(-> length n) n]))
+
 (define t1 (current-time))
 (display "All tests passed!\n")
 (format #t "~s\n" (time-difference t1 t0))

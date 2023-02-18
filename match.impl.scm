@@ -56,17 +56,23 @@
     (or (and (atom? pattern) (not (null? pattern)))
         (and (pair? pattern) (eq? (car pattern) 'quote))))
 
+  ; Check if pattern is wildcard pattern
   (define (pattern-wildcard? pattern) (eq? pattern '_))
 
-  (define (match-clause val pattern on-match on-mismatch)
-    (syntax-case pattern (& ? ->)
+  (define (match-quasiquotation match-value pattern on-match on-mismatch)
+    (syntax-case pattern (unquote unquote-splicing)
+      [,x (match-clause match-value #'x on-match on-mismatch)]))
+
+  (define (match-clause match-value pattern on-match on-mismatch)
+    (syntax-case pattern (& ? -> quasiquote)
       [(& . named-pattern-args*)
         (syntax-case #'named-pattern-args* ()
           [(pattern0 pattern1 pattern* ...)
+            ; TODO;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
             (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
               `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
                 ,(fold-right (lambda (pattern on-match)
-                      (match-clause val pattern on-match `(,on-mismatch-thunk)))
+                      (match-clause match-value pattern on-match `(,on-mismatch-thunk)))
                     on-match #'(pattern0 pattern1 pattern* ...))))]
 
           [unknown-pattern-args
@@ -76,10 +82,11 @@
       [(? . predicate-pattern-args*)
         (syntax-case #'predicate-pattern-args* ()
           [(predicate pattern)
+            ; TODO;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
             (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
               `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
-                (if (,#'predicate ,val)
-                  ,(match-clause val #'pattern on-match `(,on-mismatch-thunk))
+                (if (,#'predicate ,match-value)
+                  ,(match-clause match-value #'pattern on-match `(,on-mismatch-thunk))
                   (,on-mismatch-thunk))))]
 
           [unknown-pattern-args
@@ -89,20 +96,23 @@
       [(-> . view-pattern-args*)
         (syntax-case #'view-pattern-args* ()
           [(procedure pattern)
-            (match-clause `(,#'procedure ,val) #'pattern on-match on-mismatch)]
+            (match-clause `(,#'procedure ,match-value) #'pattern on-match on-mismatch)]
 
           [unknown-pattern-args
             (match-errorf "Unexpected view pattern ~s, expected (-> procedure pattern)"
                           (cons '-> #'unknown-pattern-args))])]
 
+      [(quasiquote pattern)
+        (match-quasiquotation match-value #'pattern on-match on-mismatch)]
+
       [wildcard (pattern-wildcard? #'wildcard)
         on-match]
 
       [variable (pattern-variable? #'variable)
-        `(let ([,#'variable ,val]) ,on-match)]
+        `(let ([,#'variable ,match-value]) ,on-match)]
 
       [literal (pattern-literal? #'literal)
-        `(if (equal? ,val ,#'literal) ,on-match ,on-mismatch)]
+        `(if (equal? ,match-value ,#'literal) ,on-match ,on-mismatch)]
 
       [unknown-pattern
         (match-errorf "Unexpected pattern ~s" #'unknown-pattern)]))
@@ -116,6 +126,7 @@
         (syntax-case #'clause (?)
           [(pattern (? predicate) on-match . on-match*)
             (let ([k (if (null? #'on-match*) #'on-match `(begin ,#'on-match ,@#'on-match*))]
+                  ; TODO;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
                   [on-mismatch-thunk (gensym "on-mismatch-thunk")])
               `(let ([,on-mismatch-thunk (lambda () ,(match-clauses (cons #'match-value #'clause*)))])
                 ,(match-clause #'match-value #'pattern `(if ,#'predicate ,k (,on-mismatch-thunk)) `(,on-mismatch-thunk))))]
