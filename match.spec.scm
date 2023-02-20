@@ -185,11 +185,41 @@
 (assert-with equal? '(louie)
   (match '(huey dewey louie) [`(huey ,_ ,@xs) xs]))
 
-(assert-with equal? (void)
+(assert-with eq? (void)
   (match '(1 2 3 4 5) [`(huey ,@(-> length xs)) xs]))
 
-(assert-with equal? 4
+(assert-with eq? 4
   (match '(1 2 3 4 5) [`(1 ,@(-> length xs)) xs]))
+
+(assert-with eq? 'success
+  (match '#() [`#() 'success]))
+
+(assert-with eq? (void)
+  (match '#() [`#(5) 'success]))
+
+(assert-with eq? (void)
+  (match '#(4) [`#(5) 'success]))
+
+(assert-with eq? (void)
+  (match '#(4 2) [`#(5) 'success]))
+
+(assert-with eq? 2
+  (match '#(1 2 3) [`#(1 ,x 3) x]))
+
+(assert-with eq? (+ 3 5)
+  (match '#(1 #(2 3 4) 5) [`#(1 #(2 ,x 4) ,y) (+ x y)]))
+
+(assert-with equal? '(5 6 7)
+  (match '#(4 5 6 7) [`#(,_ ,@xs) xs]))
+
+(assert-with equal? '(4 5 6 7)
+  (match '#(4 5 6 7) [`#(,@xs) xs]))
+
+(assert-with equal? '(7)
+  (match '#(4 5 6 7) [`#(4 5 6 ,@xs) xs]))
+
+(assert-with equal? '()
+  (match '#(4 5 6 7) [`#(4 5 6 7 ,@xs) xs]))
 
 (define t1 (current-time))
 (display "All tests passed!\n")

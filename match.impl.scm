@@ -49,9 +49,35 @@
   ; Check if pattern is wildcard pattern
   (define (pattern-wildcard? pattern) (eq? pattern '_))
 
+  (define (match-quasiquoted-vector match-value pattern on-match on-mismatch)
+    (let loop ([offset 0] [pattern pattern])
+      (syntax-case pattern (unquote unquote-splicing)
+        [()
+          `(if (= ,offset (vector-length ,match-value)) ,on-match ,on-mismatch)]
+
+        [(,@x)
+          `(let loop ([i (sub1 (vector-length ,match-value))] [acc '()])
+              (if (>= i ,offset) (loop (sub1 i) (cons (vector-ref ,match-value i) acc)) acc))]
+
+        [(pattern . patterns)
+          `(if (> (vector-length ,match-value) ,offset)
+              ,(match-quasiquotation `(vector-ref ,match-value ,offset) #'pattern
+                (loop (add1 offset) #'patterns)
+                on-mismatch)
+              ,on-mismatch)])))
+
   (define (match-quasiquotation match-value pattern on-match on-mismatch)
     (syntax-case pattern (unquote unquote-splicing)
-      [() `(if (null? ,match-value) ,on-match ,on-mismatch)]
+      [()
+        `(if (null? ,match-value) ,on-match ,on-mismatch)]
+
+      [#(pattern ...)
+        ; TODO;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
+        (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
+          `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
+            (if (vector? ,match-value)
+              ,(match-quasiquoted-vector match-value #'(pattern ...) on-match `(,on-mismatch-thunk))
+              (,on-mismatch-thunk))))]
 
       [literal (atom? #'literal)
         `(if (equal? ',#'literal ,match-value) ,on-match ,on-mismatch)]
