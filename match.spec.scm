@@ -223,6 +223,22 @@
 (assert-with eq? '()
   (match '#(4 5 6 7) [`#(4 5 6 7 ,@xs) xs]))
 
+(let ([my-var 5])
+  (assert-with eq? 6
+    (match my-var [x (add1 x)])))
+
+(let ([my-procedure (lambda (x) (+ x 4))])
+  (assert-with eq? 11
+    (match 6 [(-> my-procedure x) (add1 x)])))
+
+(let ([my-predicate (lambda (x) (= x 13))])
+  (assert-with eq? 1
+    (match (iota 13) [(& (-> length (? my-predicate _)) x) (add1 (car x))])))
+
+(let ([my-predicate (lambda (x) (= x 13))])
+  (assert-with equal? (iota 13)
+    (match (iota 13) [x (? (my-predicate x)) x])))
+
 (define t0 (current-time))
 
 (assert-with equal? '#(louie 1 2)

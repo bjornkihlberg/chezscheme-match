@@ -4,6 +4,13 @@ Pattern matching in Chez Scheme
 
 ---
 
+> 🪳 Bug in `match` macro when using bound identifiers from its invoked environment. Example:
+> ```scheme
+> > (let ([x 5]) (match x [_ 'success]))
+> Exception: attempt to reference unbound identifier x
+> ```
+> Will be fixed shortly!
+
 ## Quickstart
 
 ### Pattern match syntax
@@ -41,4 +48,4 @@ Where `value` is an eagerly evaluated expression and clause is described with th
     | #(quasi-quotation-pattern*)   ; Match when value is vector
 ```
 
-Where `expression` can be any **ChezScheme** expression.
+Where `expression` can be any **Chez Scheme** expression.
