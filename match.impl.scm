@@ -1,36 +1,3 @@
-; (define-syntax if-match
-;   (syntax-rules (unquote-splicing quasiquote unquote)
-;     [(_ value `,x bodys bodyf) ((lambda (x) bodys) value)]
-
-;     [(_ value `(,@x) bodys bodyf)
-;       (if (list? value) ((lambda (x) bodys) value) bodyf)]
-
-;     [(_ value `(x) bodys bodyf)
-;       (if (and (pair? value) (null? (cdr value)))
-;           (if-match (car value) `x bodys bodyf)
-;           bodyf)]
-
-;     [(_ value `(x xs ...) bodys bodyf)
-;       (if (pair? value)
-;           (if-match (car value) `x
-;             (if-match (cdr value) `(xs ...) bodys bodyf)
-;             bodyf)
-;           bodyf)]
-
-;     [(_ value `x bodys bodyf) (if (equal? value 'x) bodys bodyf)]))
-
-; (define-syntax match
-;   (syntax-rules (else)
-;     [(_ value) (void)]
-;     [(_ value (else body)) body]
-;     [(_ value (pattern body) rest ...)
-;       (if-match value pattern body (match value rest ...))]
-;     [(_ value (pattern test body) rest ...)
-;       (if-match value pattern test body (match value rest ...))]))
-
-; (define-syntax match-lambda
-;   (syntax-rules () [(_ patterns ...) (lambda (x) (match x patterns ...))]))
-
 (define-syntax (match code)
   (define macro-name (car (syntax->datum code)))
   (define macro-args (cdr (syntax->datum code)))
@@ -48,6 +15,16 @@
 
   ; Check if pattern is wildcard pattern
   (define (pattern-wildcard? pattern) (eq? pattern '_))
+
+  (define (wrap-mismatch-in-thunk on-mismatch mini-macro)
+    (syntax-case on-mismatch ()
+      [(expression) (symbol? #'expression)
+        (mini-macro on-mismatch)]
+
+      [_
+        (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
+          `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)]) 
+              ,(mini-macro (list on-mismatch-thunk))))]))
 
   (define (match-quasiquoted-vector match-value pattern on-match on-mismatch)
     (let loop ([offset 0] [pattern pattern])
@@ -75,18 +52,10 @@
         `(if (null? ,match-value) ,on-match ,on-mismatch)]
 
       [#(pattern ...)
-        ; DONE;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
-        (let mini-macro ([on-mismatch on-mismatch])
-          (syntax-case on-mismatch ()
-            [(expression) (symbol? #'expression)
-             `(if (vector? ,match-value)
-              ,(match-quasiquoted-vector match-value #'(pattern ...) on-match on-mismatch)
-              ,on-mismatch)]
-
-            [_
-              (let ([on-mismatch-thunk (gensym "on-mismatch-thunk-a")])
-                `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
-                  ,(mini-macro (list on-mismatch-thunk))))]))]
+        (wrap-mismatch-in-thunk on-mismatch (lambda (on-mismatch)
+          `(if (vector? ,match-value)
+            ,(match-quasiquoted-vector match-value #'(pattern ...) on-match on-mismatch)
+            ,on-mismatch)))]
 
       [literal (atom? #'literal)
         `(if (equal? ',#'literal ,match-value) ,on-match ,on-mismatch)]
@@ -98,40 +67,24 @@
         (match-clause match-value #'x on-match on-mismatch)]
 
       [(x . xs)
-        ; DONE;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
-        (let mini-macro ([on-mismatch on-mismatch])
-          (syntax-case on-mismatch ()
-            [(expression) (symbol? #'expression)
-              (let ([new-match-value (gensym "match-value-b")])
-                `(if (pair? ,match-value)
-                  ,(match-quasiquotation `(car ,match-value) #'x
-                    `(let ([,new-match-value (cdr ,match-value)])
-                      ,(match-quasiquotation new-match-value #'xs on-match on-mismatch))
-                    on-mismatch)
-                  ,on-mismatch))]
-
-            [_
-              (let ([on-mismatch-thunk (gensym "on-mismatch-thunk-b")])
-                `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)]) 
-                    ,(mini-macro (list on-mismatch-thunk))))]))]))
+        (wrap-mismatch-in-thunk on-mismatch (lambda (on-mismatch)
+          (let ([new-match-value (gensym "match-value-b")])
+            `(if (pair? ,match-value)
+              ,(match-quasiquotation `(car ,match-value) #'x
+                `(let ([,new-match-value (cdr ,match-value)])
+                  ,(match-quasiquotation new-match-value #'xs on-match on-mismatch))
+                on-mismatch)
+              ,on-mismatch))))]))
 
   (define (match-clause match-value pattern on-match on-mismatch)
     (syntax-case pattern (& ? -> quasiquote)
       [(& . named-pattern-args*)
         (syntax-case #'named-pattern-args* ()
           [(pattern0 pattern1 pattern* ...)
-            ; DONE;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
-            (let mini-macro ([on-mismatch on-mismatch])
-              (syntax-case on-mismatch ()
-                [(expression) (symbol? #'expression)
-                  (fold-right (lambda (pattern on-match)
-                      (match-clause match-value pattern on-match on-mismatch))
-                    on-match #'(pattern0 pattern1 pattern* ...))]
-
-                [_
-                  (let ([on-mismatch-thunk (gensym "on-mismatch-thunk-c")])
-                    `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
-                      ,(mini-macro (list on-mismatch-thunk))))]))]
+            (wrap-mismatch-in-thunk on-mismatch (lambda (on-mismatch)
+              (fold-right (lambda (pattern on-match)
+                  (match-clause match-value pattern on-match on-mismatch))
+                on-match #'(pattern0 pattern1 pattern* ...))))]
 
           [unknown-pattern-args
             (match-errorf "Unexpected named pattern ~s, expected (& pattern pattern pattern ...)"
@@ -140,32 +93,16 @@
       [(? . predicate-pattern-args*)
         (syntax-case #'predicate-pattern-args* ()
           [(pattern)
-            ; DONE;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
-            (let mini-macro ([on-mismatch on-mismatch])
-              (syntax-case on-mismatch ()
-                [(expression) (symbol? #'expression)
-                  `(if ,match-value
-                    ,(match-clause match-value #'pattern on-match on-mismatch)
-                    ,on-mismatch)]
-
-                [_
-                  (let ([on-mismatch-thunk (gensym "on-mismatch-thunk-d")])
-                    `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
-                      ,(mini-macro (list on-mismatch-thunk))))]))]
+            (wrap-mismatch-in-thunk on-mismatch (lambda (on-mismatch)
+              `(if ,match-value
+                ,(match-clause match-value #'pattern on-match on-mismatch)
+                ,on-mismatch)))]
 
           [(predicate pattern)
-            ; DONE;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
-            (let mini-macro ([on-mismatch on-mismatch])
-              (syntax-case on-mismatch ()
-                [(expression) (symbol? #'expression)
-                  `(if (,#'predicate ,match-value)
-                    ,(match-clause match-value #'pattern on-match on-mismatch)
-                    ,on-mismatch)]
-
-                [_
-                  (let ([on-mismatch-thunk (gensym "on-mismatch-thunk-e")])
-                    `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
-                      ,(mini-macro (list on-mismatch-thunk))))]))            ]
+            (wrap-mismatch-in-thunk on-mismatch (lambda (on-mismatch)
+              `(if (,#'predicate ,match-value)
+                ,(match-clause match-value #'pattern on-match on-mismatch)
+                ,on-mismatch)))]
 
           [unknown-pattern-args
             (match-errorf "Unexpected predicate pattern ~s, expected (? predicate pattern) or (? pattern)"
