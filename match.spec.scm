@@ -102,20 +102,20 @@
 (expect-error e
   (assert-with string=?
     (condition-message e)
-    "Unexpected predicate pattern (?), expected (? predicate pattern) in")
+    "Unexpected predicate pattern (?), expected (? predicate pattern) or (? pattern) in")
   (expand '(match 5 [(?) 4])))
 
 (expect-error e
   (assert-with string=?
     (condition-message e)
-    "Unexpected predicate pattern (? odd?), expected (? predicate pattern) in")
-  (expand '(match 5 [(? odd?) 4])))
-
-(expect-error e
-  (assert-with string=?
-    (condition-message e)
-    "Unexpected predicate pattern (? even? x y), expected (? predicate pattern) in")
+    "Unexpected predicate pattern (? even? x y), expected (? predicate pattern) or (? pattern) in")
   (expand '(match 5 [(? even? x y) 4])))
+
+(assert-with eq? 9
+  (match 9 [(? x) x]))
+
+(assert-with eq? (void)
+  (match #f [(? x) x]))
 
 (assert-with eq? 9
   (match 9 [(? odd? x) x]))
@@ -218,7 +218,7 @@
 (assert-with equal? '(7)
   (match '#(4 5 6 7) [`#(4 5 6 ,@xs) xs]))
 
-(assert-with equal? '()
+(assert-with eq? '()
   (match '#(4 5 6 7) [`#(4 5 6 7 ,@xs) xs]))
 
 (define t1 (current-time))

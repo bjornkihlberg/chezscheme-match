@@ -118,6 +118,14 @@
 
       [(? . predicate-pattern-args*)
         (syntax-case #'predicate-pattern-args* ()
+          [(pattern)
+            ; TODO;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
+            (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
+              `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
+                (if ,match-value
+                  ,(match-clause match-value #'pattern on-match `(,on-mismatch-thunk))
+                  (,on-mismatch-thunk))))]
+
           [(predicate pattern)
             ; TODO;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
             (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
@@ -127,7 +135,7 @@
                   (,on-mismatch-thunk))))]
 
           [unknown-pattern-args
-            (match-errorf "Unexpected predicate pattern ~s, expected (? predicate pattern)"
+            (match-errorf "Unexpected predicate pattern ~s, expected (? predicate pattern) or (? pattern)"
                           (cons '? #'unknown-pattern-args))])]
 
       [(-> . view-pattern-args*)
