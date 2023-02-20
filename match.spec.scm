@@ -16,7 +16,6 @@
         (assert-with symbol=? error (guard (e [else expectation error]) expression success)))]))
 
 (display "Running tests...\n")
-(define t0 (current-time))
 
 (module (match)
   (include "match.impl.scm"))
@@ -224,6 +223,19 @@
 (assert-with eq? '()
   (match '#(4 5 6 7) [`#(4 5 6 7 ,@xs) xs]))
 
+(define t0 (current-time))
+
+(assert-with equal? '#(louie 1 2)
+  (match '(huey #(dewey #(louie 1 2) 3) 4 5 6)
+    ['() 'boo1]
+    [`(,x ,@_) (? (number? x)) 'boo2]
+    [`(,x ,(? vector? (& (-> vector-length 3) `#(dewey ,@`(louie ,@_)))) ,@_) 'boo3]
+    [(& (-> length l) `(huey ,(& v (-> vector-length i) `#(dewey ,_ ,j)) 4 ,n ,@_))
+      (? (and (= n l 5)
+              (= i j 3)))
+      (vector-ref v 1)]))
+
 (define t1 (current-time))
+
 (display "All tests passed!\n")
 (format #t "~s\n" (time-difference t1 t0))
