@@ -212,6 +212,9 @@
 (assert-with equal? '(5 6 7)
   (match '#(4 5 6 7) [`#(,_ ,@xs) xs]))
 
+(assert-with equal? 'success
+  (match '#(4 5 6 7) [`#(,_ ,@xs) 'success]))
+
 (assert-with equal? '(4 5 6 7)
   (match '#(4 5 6 7) [`#(,@xs) xs]))
 

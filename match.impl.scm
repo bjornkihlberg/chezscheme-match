@@ -55,9 +55,12 @@
         [()
           `(if (= ,offset (vector-length ,match-value)) ,on-match ,on-mismatch)]
 
-        [(,@x)
-          `(let loop ([i (sub1 (vector-length ,match-value))] [acc '()])
-              (if (>= i ,offset) (loop (sub1 i) (cons (vector-ref ,match-value i) acc)) acc))]
+        [(,@pattern)
+          (let ([new-match-value (gensym "match-value-a")])
+            `(let loop ([i (sub1 (vector-length ,match-value))] [,new-match-value '()])
+              (if (>= i ,offset)
+                  (loop (sub1 i) (cons (vector-ref ,match-value i) ,new-match-value))
+                  ,(match-clause new-match-value #'pattern on-match on-mismatch))))]
 
         [(pattern . patterns)
           `(if (> (vector-length ,match-value) ,offset)
