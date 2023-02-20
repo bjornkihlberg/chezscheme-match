@@ -76,7 +76,7 @@
 
       [#(pattern ...)
         ; TODO;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
-        (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
+        (let ([on-mismatch-thunk (gensym "on-mismatch-thunk-a")])
           `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
             (if (vector? ,match-value)
               ,(match-quasiquoted-vector match-value #'(pattern ...) on-match `(,on-mismatch-thunk))
@@ -93,8 +93,8 @@
 
       [(x . xs)
         ; TODO;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
-        (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")]
-              [new-match-value (gensym "match-value")])
+        (let ([on-mismatch-thunk (gensym "on-mismatch-thunk-b")]
+              [new-match-value (gensym "match-value-b")])
           `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)]) 
               (if (pair? ,match-value)
                 ,(match-quasiquotation `(car ,match-value) #'x
@@ -109,7 +109,7 @@
         (syntax-case #'named-pattern-args* ()
           [(pattern0 pattern1 pattern* ...)
             ; TODO;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
-            (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
+            (let ([on-mismatch-thunk (gensym "on-mismatch-thunk-c")])
               `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
                 ,(fold-right (lambda (pattern on-match)
                       (match-clause match-value pattern on-match `(,on-mismatch-thunk)))
@@ -123,7 +123,7 @@
         (syntax-case #'predicate-pattern-args* ()
           [(pattern)
             ; TODO;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
-            (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
+            (let ([on-mismatch-thunk (gensym "on-mismatch-thunk-d")])
               `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
                 (if ,match-value
                   ,(match-clause match-value #'pattern on-match `(,on-mismatch-thunk))
@@ -131,7 +131,7 @@
 
           [(predicate pattern)
             ; TODO;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
-            (let ([on-mismatch-thunk (gensym "on-mismatch-thunk")])
+            (let ([on-mismatch-thunk (gensym "on-mismatch-thunk-e")])
               `(let ([,on-mismatch-thunk (lambda () ,on-mismatch)])
                 (if (,#'predicate ,match-value)
                   ,(match-clause match-value #'pattern on-match `(,on-mismatch-thunk))
@@ -175,7 +175,7 @@
           [(pattern (? predicate) on-match . on-match*)
             (let ([k (if (null? #'on-match*) #'on-match `(begin ,#'on-match ,@#'on-match*))]
                   ; TODO;OPTIMIZATION if on-mismatch code is '(symbol), no need to do this step:
-                  [on-mismatch-thunk (gensym "on-mismatch-thunk")])
+                  [on-mismatch-thunk (gensym "on-mismatch-thunk-f")])
               `(let ([,on-mismatch-thunk (lambda () ,(match-clauses (cons #'match-value #'clause*)))])
                 ,(match-clause #'match-value #'pattern `(if ,#'predicate ,k (,on-mismatch-thunk)) `(,on-mismatch-thunk))))]
 
@@ -195,7 +195,7 @@
         '(void)]
 
       [(macro-arg . macro-args)
-        (let ([match-value (gensym "match-value")])
+        (let ([match-value (gensym "match-value-c")])
           `(let ([,match-value ,#'macro-arg]) ,(match-clauses (cons match-value #'macro-args))))]))
 
   (datum->syntax #'code (match-wrap-value macro-args)))
