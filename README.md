@@ -4,6 +4,13 @@ Pattern matching in Chez Scheme
 
 ---
 
+> 🪳 Bug in `match` macro where keywords are not recognized. Example:
+> ```scheme
+> > (match 3 [x (? (odd? x)) 'success])
+> Exception: variable ? is not bound
+> ```
+> Will be fixed shortly!
+
 ## Quickstart
 
 ### Pattern match syntax
