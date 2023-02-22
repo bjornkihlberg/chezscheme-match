@@ -242,6 +242,33 @@
   (assert-with equal? (iota 13)
     (match (iota 13) [x (? (my-predicate x)) x])))
 
+(assert-with eq? 'success
+    (match 3 [x (? (odd? x)) 'success]))
+
+(assert-with eq? 5
+  (match 4 [(-> add1 x) x]))
+
+(assert-with eq? (* 6 3)
+  (match 6 [(& x y z) (+ x y z)]))
+
+(assert-with eq? 7
+  (match 8 [(? even? x) (sub1 x)]))
+
+(let ()
+  (import (match))
+
+  (assert-with eq? 'success
+    (match 3 [x (? (odd? x)) 'success]))
+
+  (assert-with eq? 5
+    (match 4 [(-> add1 x) x]))
+  
+  (assert-with eq? (* 6 3)
+    (match 6 [(& x y z) (+ x y z)]))
+  
+  (assert-with eq? 7
+    (match 8 [(? even? x) (sub1 x)])))
+
 (define t0 (current-time))
 
 (assert-with equal? '#(louie 1 2)
