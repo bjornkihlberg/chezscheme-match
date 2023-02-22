@@ -4,13 +4,6 @@ Pattern matching in Chez Scheme
 
 ---
 
-> 🪳 Bug in `match` macro when using bound identifiers from its invoked environment. Example:
-> ```scheme
-> > (let ([x 5]) (match x [_ 'success]))
-> Exception: attempt to reference unbound identifier x
-> ```
-> Will be fixed shortly!
-
 ## Quickstart
 
 ### Pattern match syntax

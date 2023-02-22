@@ -128,6 +128,9 @@
 (assert-with eq? (void)
   (match 3 [x (? #f) x]))
 
+(assert-with eq? (void)
+  (match 701 [x (? #f) (void) (void) x]))
+
 (assert-with eq? 15
   (match 15 [x (? #t) x]))
 
@@ -235,7 +238,7 @@
   (assert-with eq? 1
     (match (iota 13) [(& (-> length (? my-predicate _)) x) (add1 (car x))])))
 
-(let ([my-predicate (lambda (x) (= x 13))])
+(let ([my-predicate (lambda (x) (= (length x) 13))])
   (assert-with equal? (iota 13)
     (match (iota 13) [x (? (my-predicate x)) x])))
 
