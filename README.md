@@ -101,3 +101,16 @@ The syntax should be generic enough such that you can implement more specific ma
 ```
 
 *More examples can be found in **./match.spec.scm***
+
+### Notes
+
+I don't know if I'm fighting **Chez Scheme** but in my mind it would be nice if **./match.scm** could only export `match` but it also needs to export its keywords `?`, `&`, and `->`. I managed to embedd sub-macros like `match-clause` and `match-quasiquotation` inside `match` but I can't seem to embedd the keywords. I know it's not a bug in **Chez Scheme** but it means that if another library use those keywords as macros, there's going to be a conflict which can, as far as I know, only be solved by renaming them.
+
+```scheme
+(import (rename (match) (? new-keyword-name)))
+```
+
+```scheme
+> (match 3 [x (new-keyword-name (odd? x)) 'success])
+'success
+```
