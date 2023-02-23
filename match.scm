@@ -1,5 +1,5 @@
 (library (match)
-  (export match)
+  (export match & ? ->)
 
   (import (chezscheme))
 

@@ -17,12 +17,12 @@
 
 (display "Running tests...\n")
 
-(module (match)
+(module (match & ? ->)
   (include "match.impl.scm"))
 
 (let ()
   (import (match))
-  (assert-with equal? (library-exports '(match)) '(match)))
+  (assert-with equal? (library-exports '(match)) '(-> ? & match)))
 
 (expect-error e
   (assert-with string=?

@@ -1,3 +1,7 @@
+(define-syntax & (lambda (code) (syntax-error code "invalid context")))
+(define-syntax ? (lambda (code) (syntax-error code "invalid context")))
+(define-syntax -> (lambda (code) (syntax-error code "invalid context")))
+
 (define-syntax (match code)
   (define macro-name (car (syntax->datum code)))
   (define macro-args (cdr (syntax->list code)))
