@@ -2,64 +2,65 @@
 
 Pattern matching in Chez Scheme
 
----
-
-# library `(match)`
-
-## syntax `match`
-
-### Examples
-
-#### Wildcard matching
+## Usage
 
 ```scheme
-(match (list 1 2 3)
-  [_ 123])
-; 123
+(import (match))
 ```
 
-#### Pair deconstruction
+### Literal patterns
 
 ```scheme
-(match '(4 . 5)
-  [`(,x . ,y) (+ x y)])
-; 9
+(match 1337
+  [5    'huey]
+  [1337 'dewey]
+  [x    'louie])
+```
+```
+dewey
 ```
 
-#### List deconstruction
+### Quasiquotation patterns
 
 ```scheme
-(match (list 1 2 3)
-  [`(,x ,@xs) x])
-; 1
+(match '(1 2 3 4)
+  [`(,x ,_ ,@xs) xs]
+  [_             'boo])
 ```
+```
+(3 4)
+```
+
+### Guard patterns
 
 ```scheme
-(match (list 1 2 3)
-  [`(,x ,@xs) xs])
-; (2 3)
+(match 1
+  [(? even? x)    (sub1 x)]
+  [(? integer? x) (add1 x)]
+  [_              'boo])
 ```
+```
+2
+```
+
+### View patterns
 
 ```scheme
-(match (list 1 2 3)
-  [`(,x ,@xs) xs])
-; (2 3)
+(match 1
+  [(-> add1 2)    'yay]
+  [_              'nay])
+```
+```
+yay
 ```
 
-#### View patterns
+### Dupe patterns
 
 ```scheme
-(match 7
-  [(x (add1 x) y) (cons x y)])
-; (7 . 8)
+(match 5
+  [(@ 5 x)    (* 2 x)]
+  [_          'nope])
 ```
-
-```scheme
-(match (list 1 2 3 4)
-  [`(2 ,@_)                  'huey]
-  [(x (even? (length x)) #t) 'dewey]
-  [`(,_ ,(x (even? x) #t))   'louie])
-; dewey
 ```
-
-> 💡 View patterns can be used to deconstruct types that are not natively supported like record types and hash tables.
+10
+```
